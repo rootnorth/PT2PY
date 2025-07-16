@@ -1,0 +1,44 @@
+# active_subenum.py
+# by @rootnorth (github)
+
+import requests
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+WORDLIST = [
+    "www", "mail", "ftp", "test", "dev", "vpn", "admin", "portal", "api", "secure",
+    "staging", "beta", "shop", "m", "webmail", "smtp", "ns1", "ns2", "mobile", "server"
+]
+
+def check_subdomain(domain, sub):
+    url = f"http://{sub}.{domain}"
+    try:
+        resp = requests.get(url, timeout=3)
+        if resp.status_code < 400:
+            return True
+    except:
+        return False
+    return False
+
+def run():
+    print("=== Active Subdomain Enumeration ===")
+    domain = input("Hedef domain girin: ").strip()
+    found_subs = []
+
+    with ThreadPoolExecutor(max_workers=20) as executor:
+        futures = {executor.submit(check_subdomain, domain, sub): sub for sub in WORDLIST}
+        for future in as_completed(futures):
+            sub = futures[future]
+            try:
+                if future.result():
+                    print(f"[+] Bulundu: {sub}.{domain}")
+                    found_subs.append(f"{sub}.{domain}")
+            except Exception as e:
+                print(f"Hata: {e}")
+
+    if found_subs:
+        print(f"\nToplam bulunan alt domain sayısı: {len(found_subs)}")
+    else:
+        print("[-] Hiç subdomain bulunamadı.")
+
+if __name__ == "__main__":
+    run()
