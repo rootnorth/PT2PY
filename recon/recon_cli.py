@@ -1,99 +1,108 @@
-#!/bin/bash
+import os
+import socket
+import subprocess
+import http.client
+from datetime import datetime
 
-# Renkler
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-NC='\033[0m' # No Color
+def clear():
+    os.system('cls' if os.name == 'nt' else 'clear')
 
-function pause(){
-    read -p "Devam etmek için Enter'a basın..."
-}
+def banner():
+    print("""
+░▒▓███████▓▒░▒▓████████▓▒░▒▓███████▓▒░░▒▓███████▓▒░░▒▓█▓▒░░▒▓█▓▒░ 
+░▒▓█▓▒░░▒▓█▓▒░ ░▒▓█▓▒░          ░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░ 
+░▒▓█▓▒░░▒▓█▓▒░ ░▒▓█▓▒░          ░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░ 
+░▒▓███████▓▒░  ░▒▓█▓▒░    ░▒▓██████▓▒░░▒▓███████▓▒░ ░▒▓██████▓▒░  
+░▒▓█▓▒░        ░▒▓█▓▒░   ░▒▓█▓▒░      ░▒▓█▓▒░         ░▒▓█▓▒░     
+░▒▓█▓▒░        ░▒▓█▓▒░   ░▒▓█▓▒░      ░▒▓█▓▒░         ░▒▓█▓▒░     
+░▒▓█▓▒░        ░▒▓█▓▒░   ░▒▓████████▓▒░▒▓█▓▒░         ░▒▓█▓▒░ 
+             RECON TOOLKIT | PT2PY
 
-function nmap_scan(){
-    read -p "Hedef IP veya Domain: " target
-    echo -e "${GREEN}Nmap taraması başlatılıyor...${NC}"
-    nmap $target
-    pause
-}
+    """)
 
-function whatweb_scan(){
-    read -p "Hedef Site (http/https ile): " target
-    echo -e "${GREEN}Whatweb çalışıyor...${NC}"
-    whatweb $target
-    pause
-}
+def ping_target(target):
+    print(f"\n[*] {target} için ping atılıyor...\n")
+    result = os.system(f"ping -c 4 {target}" if os.name != "nt" else f"ping {target}")
+    if result != 0:
+        print("[!] Ping başarısız.")
 
-function curl_head(){
-    read -p "Hedef Site (http/https ile): " target
-    echo -e "${GREEN}HTTP başlık bilgisi alınıyor...${NC}"
-    curl -I $target
-    pause
-}
+def dns_lookup(target):
+    print(f"\n[*] {target} için DNS çözümleme...\n")
+    try:
+        ip = socket.gethostbyname(target)
+        host = socket.gethostbyaddr(ip)[0]
+        print(f"IP: {ip}")
+        print(f"Hostname: {host}")
+    except socket.gaierror:
+        print("[!] DNS çözümleme başarısız.")
 
-function ping_test(){
-    read -p "Hedef IP veya Domain: " target
-    echo -e "${GREEN}Ping testi yapılıyor...${NC}"
-    ping -c 4 $target
-    pause
-}
+def port_scan(target):
+    print(f"\n[*] {target} için port taraması (1-1024)...\n")
+    try:
+        ip = socket.gethostbyname(target)
+        for port in range(1, 1025):
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(0.5)
+            result = sock.connect_ex((ip, port))
+            if result == 0:
+                print(f"[+] Açık Port: {port}")
+            sock.close()
+    except Exception as e:
+        print(f"[!] Hata: {e}")
 
-function dig_query(){
-    read -p "Hedef Domain: " target
-    echo -e "${GREEN}DNS sorgusu yapılıyor...${NC}"
-    dig $target
-    pause
-}
+def basic_whois(ip):
+    print(f"\n[*] {ip} için WHOIS benzeri bilgi...\n")
+    try:
+        print(f"Tarih: {datetime.now()}")
+        print(f"IP Adresi: {ip}")
+        print(f"Hostname: {socket.getfqdn(ip)}")
+    except:
+        print("[!] IP bilgisi alınamadı.")
 
-while true; do
-    clear
-    echo -e "${RED}"
-    echo "######  #######  #####  ######  #     #    "
-    echo "#     #    #    #     # #     #  #   #     "
-    echo "#     #    #          # #     #   # #      "
-    echo "######     #     #####  ######     #       "
-    echo "#          #    #       #          #       "
-    echo "#          #    #       #          #       "
-    echo "#          #    ####### #          #       "
-    echo "                                            "
-    echo "#####  ######  ####   ####  #    #           "
-    echo "#    # #      #    # #    # ##   #           "
-    echo "#    # #####  #      #    # # #  #           "
-    echo "#####  #      #      #    # #  # #           "
-    echo "#   #  #      #    # #    # #   ##           "
-    echo "#    # ######  ####   ####  #    #           "
-    echo -e "${NC}"
-    echo "==== reconhub for new starters ===="
-    echo "1) port scan with nmap"
-    echo "2) learn web tech with whatweb"
-    echo "3) http info with curl"
-    echo "4) Ping"
-    echo "5) DNS Check with Dig"
-    echo "0) Exit"
-    read -p "Seçiminiz: " secim
+def http_headers(target):
+    print(f"\n[*] {target} için HTTP başlıkları alınıyor...\n")
+    try:
+        conn = http.client.HTTPConnection(target, timeout=5)
+        conn.request("HEAD", "/")
+        res = conn.getresponse()
+        for header in res.getheaders():
+            print(f"{header[0]}: {header[1]}")
+        conn.close()
+    except Exception as e:
+        print(f"[!] Hata: {e}")
 
-    case $secim in
-        1)
-            nmap_scan
-            ;;
-        2)
-            whatweb_scan
-            ;;
-        3)
-            curl_head
-            ;;
-        4)
-            ping_test
-            ;;
-        5)
-            dig_query
-            ;;
-        0)
-            echo "Çıkış yapılıyor..."
-            exit
-            ;;
-        *)
-            echo "Geçersiz seçim!"
-            sleep 1
-            ;;
-    esac
-done
+def main():
+    while True:
+        clear()
+        banner()
+        print("""
+[1] Ping At
+[2] DNS Çözümle
+[3] Port Taraması
+[4] Basit IP Whois
+[5] HTTP Başlıklarını Al
+[0] Çıkış
+        """)
+        choice = input(">> Seçimin: ")
+
+        if choice == "0":
+            break
+        target = input("Hedef (IP ya da alan adı): ")
+
+        if choice == "1":
+            ping_target(target)
+        elif choice == "2":
+            dns_lookup(target)
+        elif choice == "3":
+            port_scan(target)
+        elif choice == "4":
+            basic_whois(target)
+        elif choice == "5":
+            http_headers(target)
+        else:
+            print("Geçersiz seçim.")
+
+        input("\nDevam etmek için Enter'a bas...")
+
+if __name__ == "__main__":
+    main()
