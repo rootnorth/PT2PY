@@ -19,7 +19,7 @@ def banner():
              RECON TOOLKIT | PT2PY
 
     """)
-
+#MadeByNORTH dont use without target system owner permissions
 def ping_target(target):
     print(f"\n[*] {target} için ping atılıyor...\n")
     result = os.system(f"ping -c 4 {target}" if os.name != "nt" else f"ping {target}")
